@@ -1308,7 +1308,7 @@ static int h264_select_output_frame(H264Context *h)
 
     if (sps->bitstream_restriction_flag ||
         h->avctx->strict_std_compliance >= FF_COMPLIANCE_STRICT) {
-        h->avctx->has_b_frames = FFMAX(h->avctx->has_b_frames, sps->num_reorder_frames);
+        h->avctx->has_b_frames = FFMAX(h->avctx->has_b_frames, sps->num_reorder_frames); // num_reorder_frames 2
     }
 
     for (i = 0; 1; i++) {
@@ -1366,8 +1366,8 @@ static int h264_select_output_frame(H264Context *h)
         for (i = out_idx; h->delayed_pic[i]; i++)
             h->delayed_pic[i] = h->delayed_pic[i + 1];
     }
-    if (!out_of_order && pics > h->avctx->has_b_frames) {
-        h->next_output_pic = out;
+    if (!out_of_order && pics > h->avctx->has_b_frames) { // pics > has_b_frames: 1 > 2 false, 1 > 0 true
+        h->next_output_pic = out; // origin! h->next_output_pic NULL to non-NULL
         if (out_idx == 0 && h->delayed_pic[0] && (h->delayed_pic[0]->f->key_frame || h->delayed_pic[0]->mmco_reset)) {
             h->next_outputed_poc = INT_MIN;
         } else
@@ -1656,7 +1656,7 @@ static int h264_field_start(H264Context *h, const H264SliceContext *sl,
         if (ret < 0)
             return ret;
 
-        ret = h264_select_output_frame(h);
+        ret = h264_select_output_frame(h); // h->next_out_pic init to non-NULL
         if (ret < 0)
             return ret;
     }
@@ -2115,7 +2115,7 @@ int ff_h264_queue_decode_slice(H264Context *h, const H2645NAL *nal)
     }
 
     if (h->current_slice == 0) {
-        ret = h264_field_start(h, sl, nal, first_slice);
+        ret = h264_field_start(h, sl, nal, first_slice); // init h->next_out_pic to non-NULL
         if (ret < 0)
             return ret;
     } else {

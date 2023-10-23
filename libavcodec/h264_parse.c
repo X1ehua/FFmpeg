@@ -359,7 +359,7 @@ static int decode_extradata_ps(const uint8_t *data, int size, H264ParamSets *ps,
     }
 
     for (i = 0; i < pkt.nb_nals; i++) {
-        H2645NAL *nal = &pkt.nals[i];
+        H2645NAL *nal = &pkt.nals[i]; // nal->gb->buffer 内容 & gb->index
         switch (nal->type) {
         case H264_NAL_SPS:
             ret = ff_h264_decode_seq_parameter_set(&nal->gb, logctx, ps, 0);

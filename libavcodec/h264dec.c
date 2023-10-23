@@ -601,7 +601,7 @@ static void debug_green_metadata(const H264SEIGreenMetaData *gm, void *logctx)
     }
 }
 
-static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size)
+static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size) // buf: avpkt.data
 {
     AVCodecContext *const avctx = h->avctx;
     int nals_needed = 0; ///< number of NALs that need decoding before the next frame thread starts
@@ -669,10 +669,10 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size)
             }
             idr_cleared = 1;
             h->has_recovery_point = 1;
-        case H264_NAL_SLICE:
+        case H264_NAL_SLICE: // reached [2023-10-22]
             h->has_slice = 1;
 
-            if ((err = ff_h264_queue_decode_slice(h, nal))) {
+            if ((err = ff_h264_queue_decode_slice(h, nal))) { // h->next_out_pic changed to non-NULL
                 H264SliceContext *sl = h->slice_ctx + h->nb_slice_ctx_queued;
                 sl->ref_count[0] = sl->ref_count[1] = 0;
                 break;
@@ -713,7 +713,7 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size)
                 ret = 0;
             } else
 #endif
-                    ret = ff_h264_execute_decode_slices(h);
+                    ret = ff_h264_execute_decode_slices(h); // h->next_out_pic->f->buf[0] set to [0xa6 0xa6 0xa5 0xa5 0xa4 ...]
                 if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
                     goto end;
             }
@@ -771,7 +771,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         }
     }
 
-    ret = ff_h264_execute_decode_slices(h);
+    ret = ff_h264_execute_decode_slices(h); // got_frame 0 时，此时 h->next_out_pic 为 NULL；反之不为 NULL
     if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
         goto end;
 
@@ -851,7 +851,7 @@ static int output_frame(H264Context *h, AVFrame *dst, H264Picture *srcp)
     if (src->format == AV_PIX_FMT_VIDEOTOOLBOX && src->buf[0]->size == 1)
         return AVERROR_EXTERNAL;
 
-    ret = av_frame_ref(dst, src);
+    ret = av_frame_ref(dst, src); // h->avctx->internal->buffer_frame->buf[0] to non-NULL
     if (ret < 0)
         return ret;
 
@@ -916,7 +916,7 @@ static int finalize_frame(H264Context *h, AVFrame *dst, H264Picture *out, int *g
                           f->format, f->width, f->height>>1);
         }
 
-        ret = output_frame(h, dst, out);
+        ret = output_frame(h, dst, out); // h->avctx->internal->buffer_frame->buf[0] to non-NULL
         if (ret < 0)
             return ret;
 
@@ -1003,7 +1003,7 @@ static int h264_decode_frame(AVCodecContext *avctx, void *data,
                                             avctx->err_recognition, avctx);
     }
 
-    buf_index = decode_nal_units(h, buf, buf_size);
+    buf_index = decode_nal_units(h, buf, buf_size); // h->nex_out_pic->f changed [Close to KEY!]
     if (buf_index < 0)
         return AVERROR_INVALIDDATA;
 
@@ -1027,7 +1027,7 @@ static int h264_decode_frame(AVCodecContext *avctx, void *data,
 
         /* Wait for second field. */
         if (h->next_output_pic) {
-            ret = finalize_frame(h, pict, h->next_output_pic, got_frame);
+            ret = finalize_frame(h, pict, h->next_output_pic, got_frame); // buf[0] non-NULL
             if (ret < 0)
                 return ret;
         }

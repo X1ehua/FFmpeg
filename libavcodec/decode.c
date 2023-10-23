@@ -261,7 +261,7 @@ static int bsfs_poll(AVCodecContext *avctx, AVPacket *pkt)
     idx = s->nb_bsfs - 1;
     while (idx >= 0) {
         /* request a packet from the currently selected filter */
-        ret = av_bsf_receive_packet(s->bsfs[idx], pkt);
+        ret = av_bsf_receive_packet(s->bsfs[idx], pkt); // ret -11
         if (ret == AVERROR(EAGAIN)) {
             /* no packets available, try the next filter up the chain */
             ret = 0;
@@ -298,7 +298,7 @@ int ff_decode_get_packet(AVCodecContext *avctx, AVPacket *pkt)
     if (avci->draining)
         return AVERROR_EOF;
 
-    ret = bsfs_poll(avctx, pkt);
+    ret = bsfs_poll(avctx, pkt); // ret -11
     if (ret == AVERROR_EOF)
         avci->draining = 1;
     if (ret < 0)
@@ -414,7 +414,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     if (HAVE_THREADS && avctx->active_thread_type & FF_THREAD_FRAME) {
         ret = ff_thread_decode_frame(avctx, frame, &got_frame, &tmp);
     } else {
-        ret = avctx->codec->decode(avctx, frame, &got_frame, &tmp);
+        ret = avctx->codec->decode(avctx, frame, &got_frame, &tmp); // frame->buf[0] NULL to non-NULL
 
         if (!(avctx->codec->caps_internal & FF_CODEC_CAP_SETS_PKT_DTS))
             frame->pkt_dts = pkt->dts;
@@ -635,7 +635,7 @@ static int decode_receive_frame_internal(AVCodecContext *avctx, AVFrame *frame)
     if (avctx->codec->receive_frame)
         ret = avctx->codec->receive_frame(avctx, frame);
     else
-        ret = decode_simple_receive_frame(avctx, frame);
+        ret = decode_simple_receive_frame(avctx, frame); // frame->buf[0] NULL to non-NULL
 
     if (ret == AVERROR_EOF)
         avci->draining_done = 1;
@@ -675,7 +675,7 @@ int attribute_align_arg avcodec_send_packet(AVCodecContext *avctx, const AVPacke
     }
 
     if (!avci->buffer_frame->buf[0]) {
-        ret = decode_receive_frame_internal(avctx, avci->buffer_frame);
+        ret = decode_receive_frame_internal(avctx, avci->buffer_frame); // buffer_frame->buf[0] to non-NULL
         if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF)
             return ret;
     }
@@ -724,10 +724,11 @@ int attribute_align_arg avcodec_receive_frame(AVCodecContext *avctx, AVFrame *fr
     if (ret < 0)
         return ret;
 
+    av_log(NULL, AV_LOG_ERROR, ">> buffer_frame[0] %d", avci->buffer_frame->buf[0] ? 1 : 0);
     if (avci->buffer_frame->buf[0]) {
-        av_frame_move_ref(frame, avci->buffer_frame);
+        av_frame_move_ref(frame, avci->buffer_frame); // got_frame 1
     } else {
-        ret = decode_receive_frame_internal(avctx, frame);
+        ret = decode_receive_frame_internal(avctx, frame); // got_frame 0
         if (ret < 0)
             return ret;
     }
@@ -765,7 +766,7 @@ static int compat_decode(AVCodecContext *avctx, AVFrame *frame,
     }
 
     if (!avci->compat_decode_partial_size) {
-        ret = avcodec_send_packet(avctx, pkt);
+        ret = avcodec_send_packet(avctx, pkt); // avctx->internal->buffer_frame->buf[0] NULL to non-NULL
         if (ret == AVERROR_EOF)
             ret = 0;
         else if (ret == AVERROR(EAGAIN)) {

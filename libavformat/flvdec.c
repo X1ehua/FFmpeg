@@ -1057,7 +1057,7 @@ skip:
         }
         if (i == s->nb_streams) {
             static const enum AVMediaType stream_types[] = {AVMEDIA_TYPE_VIDEO, AVMEDIA_TYPE_AUDIO, AVMEDIA_TYPE_SUBTITLE};
-            st = create_stream(s, stream_types[stream_type]);
+            st = create_stream(s, stream_types[stream_type]); // s->nb_streams = 1 inside
             if (!st)
                 return AVERROR(ENOMEM);
 

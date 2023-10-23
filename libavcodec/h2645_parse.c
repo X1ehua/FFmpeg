@@ -29,8 +29,8 @@
 #include "hevc.h"
 #include "h2645_parse.h"
 
-int ff_h2645_extract_rbsp(const uint8_t *src, int length,
-                          H2645NAL *nal, int small_padding)
+int ff_h2645_extract_rbsp(const uint8_t *src, int length,   // rbsp: Raw Byte Sequence Payload
+                          H2645NAL *nal, int small_padding) // nal : Network Abstraction Layer
 {
     int i, si, di;
     uint8_t *dst;
@@ -247,6 +247,7 @@ static int h264_parse_nal_header(H2645NAL *nal, void *logctx)
     return 1;
 }
 
+// nalff: NAL Unit Format with Four-byte start codes, 一种特殊的 nal 单元格式
 int ff_h2645_packet_split(H2645Packet *pkt, const uint8_t *buf, int length,
                           void *logctx, int is_nalff, int nal_length_size,
                           enum AVCodecID codec_id, int small_padding)
@@ -326,6 +327,8 @@ int ff_h2645_packet_split(H2645Packet *pkt, const uint8_t *buf, int length,
         }
         nal = &pkt->nals[pkt->nb_nals];
 
+        // rbsp: Raw Byte Sequence Payload, 无任何特殊编码或格式的原始字节序列
+        // nalu: Network Abstraction Layer Unit, 网络抽象层单元。在 H.264 和 H.265 中，nalu 是用于网络上传输视频数据的单元
         consumed = ff_h2645_extract_rbsp(buf, extract_length, nal, small_padding);
         if (consumed < 0)
             return consumed;
@@ -345,14 +348,14 @@ int ff_h2645_packet_split(H2645Packet *pkt, const uint8_t *buf, int length,
 
         nal->size_bits = get_bit_length(nal, skip_trailing_zeros);
 
-        ret = init_get_bits(&nal->gb, nal->data, nal->size_bits);
+        ret = init_get_bits(&nal->gb, nal->data, nal->size_bits); // nal->gb->buffer inited, index still 0
         if (ret < 0)
             return ret;
 
         if (codec_id == AV_CODEC_ID_HEVC)
             ret = hevc_parse_nal_header(nal, logctx);
         else
-            ret = h264_parse_nal_header(nal, logctx);
+            ret = h264_parse_nal_header(nal, logctx); // nal->gb->index init non-zero number
         if (ret <= 0 || nal->size <= 0) {
             if (ret < 0) {
                 av_log(logctx, AV_LOG_ERROR, "Invalid NAL unit %d, skipping.\n",

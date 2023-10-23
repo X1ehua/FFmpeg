@@ -1537,8 +1537,7 @@ static int read_frame_internal(AVFormatContext *s, AVPacket *pkt)
                 if (st->parser && st->need_parsing)
                     parse_packet(s, NULL, st->index);
             }
-            /* all remaining packets are now in parse_queue =>
-             * really terminate parsing */
+            /* all remaining packets are now in parse_queue => really terminate parsing */
             break;
         }
         ret = 0;
@@ -3721,7 +3720,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         /* NOTE: A new stream can be added there if no header in file
          * (AVFMTCTX_NOHEADER). */
-        ret = read_frame_internal(ic, &pkt1);
+        ret = read_frame_internal(ic, &pkt1); // flv 在这里面将 ic->nb_streams 设为 1
         if (ret == AVERROR(EAGAIN))
             continue;
 

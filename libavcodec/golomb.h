@@ -63,7 +63,7 @@ static inline int get_ue_golomb(GetBitContext *gb)
         LAST_SKIP_BITS(re, gb, ff_golomb_vlc_len[buf]);
         CLOSE_READER(re, gb);
 
-        return ff_ue_golomb_vlc_code[buf];
+        return ff_ue_golomb_vlc_code[buf]; // ff_ue_golomb_vlc_code: const uint8[512]
     } else {
         int log = 2 * av_log2(buf) - 31;
         LAST_SKIP_BITS(re, gb, 32 - log);
@@ -106,7 +106,7 @@ static inline int get_ue_golomb_31(GetBitContext *gb)
     buf = GET_CACHE(re, gb);
 
     buf >>= 32 - 9;
-    LAST_SKIP_BITS(re, gb, ff_golomb_vlc_len[buf]);
+    LAST_SKIP_BITS(re, gb, ff_golomb_vlc_len[buf]); // re_index += ff_golomb_vlc_len[buf]
     CLOSE_READER(re, gb);
 
     return ff_ue_golomb_vlc_code[buf];

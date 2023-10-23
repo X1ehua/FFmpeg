@@ -427,7 +427,7 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
     for (i = 0; i < FF_ARRAY_ELEMS(src->buf); i++) {
         if (!src->buf[i])
             continue;
-        dst->buf[i] = av_buffer_ref(src->buf[i]);
+        dst->buf[i] = av_buffer_ref(src->buf[i]); // buffer_frame: dst->buf[0] to non-NULL
         if (!dst->buf[i]) {
             ret = AVERROR(ENOMEM);
             goto fail;

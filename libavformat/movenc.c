@@ -5144,6 +5144,7 @@ int ff_mov_write_packet(AVFormatContext *s, AVPacket *pkt)
                 goto err;
             }
         } else {
+            //av_log(NULL, AV_LOG_WARNING, "#901 pkt: size %d, dts %ld, pts %ld, duration %ld, data 0x%x", pkt->size, pkt->dts, pkt->pts, pkt->duration, (uint)pkt->data);
             avio_write(pb, pkt->data, size);
         }
     }
@@ -5276,7 +5277,7 @@ int ff_mov_write_packet(AVFormatContext *s, AVPacket *pkt)
         ff_mov_add_hinted_packet(s, pkt, trk->hint_track, trk->entry,
                                  reformatted_data, size);
 
-end:
+//end: // not used label
 err:
 
     av_free(reformatted_data);
@@ -6199,7 +6200,7 @@ static int mov_write_header(AVFormatContext *s)
         }
     }
 
-    avio_flush(pb);
+    avio_flush(pb); // write 48b to file
 
     if (mov->flags & FF_MOV_FLAG_ISML)
         mov_write_isml_manifest(pb, mov, s);

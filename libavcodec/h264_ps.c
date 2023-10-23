@@ -131,8 +131,11 @@ static inline int decode_hrd_parameters(GetBitContext *gb, AVCodecContext *avctx
     return 0;
 }
 
-static inline int decode_vui_parameters(GetBitContext *gb, AVCodecContext *avctx,
-                                        SPS *sps)
+/* uvi: Video Usability Information, H.246/265 视频编码标准中的一部分，用于传输一些与视频可能性相关的信息，
+ *      如色彩空间、色彩取样格式、视频格式等。这些信息可以帮助解码器正确地解析与显示视频数据
+ * sps: Sequence Parameter Set, H.264/265 标准中的一组参数，用于描述整个视频序列的属性，如分辨率、帧率、比特率等
+ */
+static inline int decode_vui_parameters(GetBitContext *gb, AVCodecContext *avctx, SPS *sps)
 {
     int aspect_ratio_info_present_flag;
     unsigned int aspect_ratio_idc;
@@ -158,7 +161,7 @@ static inline int decode_vui_parameters(GetBitContext *gb, AVCodecContext *avctx
     if (get_bits1(gb))      /* overscan_info_present_flag */
         get_bits1(gb);      /* overscan_appropriate_flag */
 
-    sps->video_signal_type_present_flag = get_bits1(gb);
+    sps->video_signal_type_present_flag = get_bits1(gb); // gb.index: bad 99, good 81
     if (sps->video_signal_type_present_flag) {
         get_bits(gb, 3);                 /* video_format */
         sps->full_range = get_bits1(gb); /* video_full_range_flag */
@@ -207,7 +210,7 @@ static inline int decode_vui_parameters(GetBitContext *gb, AVCodecContext *avctx
         sps->fixed_frame_rate_flag = get_bits1(gb);
     }
 
-    sps->nal_hrd_parameters_present_flag = get_bits1(gb);
+    sps->nal_hrd_parameters_present_flag = get_bits1(gb); // gb.index: bad 196, good 113
     if (sps->nal_hrd_parameters_present_flag)
         if (decode_hrd_parameters(gb, avctx, sps) < 0)
             return AVERROR_INVALIDDATA;
@@ -228,7 +231,7 @@ static inline int decode_vui_parameters(GetBitContext *gb, AVCodecContext *avctx
         get_ue_golomb(gb); /* max_bits_per_mb_denom */
         get_ue_golomb(gb); /* log2_max_mv_length_horizontal */
         get_ue_golomb(gb); /* log2_max_mv_length_vertical */
-        sps->num_reorder_frames = get_ue_golomb(gb);
+        sps->num_reorder_frames = get_ue_golomb(gb); // gb.index: bad 217, good 138
         get_ue_golomb(gb); /*max_dec_frame_buffering*/
 
         if (get_bits_left(gb) < 0) {
@@ -379,7 +382,7 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
     memset(sps->scaling_matrix4, 16, sizeof(sps->scaling_matrix4));
     memset(sps->scaling_matrix8, 16, sizeof(sps->scaling_matrix8));
     sps->scaling_matrix_present = 0;
-    sps->colorspace = 2; //AVCOL_SPC_UNSPECIFIED
+    sps->colorspace = 2; //AVCOL_SPC_UNSPECIFIED [ >>temp<< gb.index: bad 33, good 33 ]
 
     if (sps->profile_idc == 100 ||  // High profile
         sps->profile_idc == 110 ||  // High10 profile
@@ -429,7 +432,7 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
         sps->bit_depth_chroma  = 8;
     }
 
-    log2_max_frame_num_minus4 = get_ue_golomb(gb);
+    log2_max_frame_num_minus4 = get_ue_golomb(gb); // gb.index: bad 40, good 33
     if (log2_max_frame_num_minus4 < MIN_LOG2_MAX_FRAME_NUM - 4 ||
         log2_max_frame_num_minus4 > MAX_LOG2_MAX_FRAME_NUM - 4) {
         av_log(avctx, AV_LOG_ERROR,
@@ -468,7 +471,7 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
         goto fail;
     }
 
-    sps->ref_frame_count = get_ue_golomb_31(gb);
+    sps->ref_frame_count = get_ue_golomb_31(gb); // gb.index: bad 45, good 37
     if (avctx->codec_tag == MKTAG('S', 'M', 'V', '2'))
         sps->ref_frame_count = FFMAX(2, sps->ref_frame_count);
     if (sps->ref_frame_count > MAX_DELAYED_PIC_COUNT) {
@@ -508,7 +511,7 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
         av_log(avctx, AV_LOG_ERROR,
                "MBAFF support not included; enable it at compile-time.\n");
 #endif
-    sps->crop = get_bits1(gb);
+    sps->crop = get_bits1(gb); // gb.index: bad 79, good 69
     if (sps->crop) {
         unsigned int crop_left   = get_ue_golomb(gb);
         unsigned int crop_right  = get_ue_golomb(gb);
@@ -557,9 +560,9 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
         sps->crop        = 0;
     }
 
-    sps->vui_parameters_present_flag = get_bits1(gb);
+    sps->vui_parameters_present_flag = get_bits1(gb); // gb.index: bad 88, good 78
     if (sps->vui_parameters_present_flag) {
-        int ret = decode_vui_parameters(gb, avctx, sps);
+        int ret = decode_vui_parameters(gb, avctx, sps); // >>> inside
         if (ret < 0)
             goto fail;
     }
