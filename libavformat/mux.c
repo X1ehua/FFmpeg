@@ -489,7 +489,7 @@ static int write_header_internal(AVFormatContext *s)
         s->internal->write_header_ret = ret;
         if (ret < 0)
             return ret;
-        flush_if_needed(s);
+        flush_if_needed(s); // write to file [48b] ?
     }
     s->internal->header_written = 1;
     if (!(s->oformat->flags & AVFMT_NOFILE) && s->pb)
@@ -531,12 +531,12 @@ int avformat_write_header(AVFormatContext *s, AVDictionary **options)
     int already_initialized = s->internal->initialized;
     int streams_already_initialized = s->internal->streams_initialized;
 
-    if (!already_initialized)
+    if (!already_initialized) // 0
         if ((ret = avformat_init_output(s, options)) < 0)
             return ret;
 
-    if (!(s->oformat->check_bitstream && s->flags & AVFMT_FLAG_AUTO_BSF)) {
-        ret = write_header_internal(s);
+    if (!(s->oformat->check_bitstream && s->flags & AVFMT_FLAG_AUTO_BSF)) { // flags not meet the condition
+        ret = write_header_internal(s); // not reached
         if (ret < 0)
             goto fail;
     }

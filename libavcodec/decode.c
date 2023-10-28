@@ -724,7 +724,7 @@ int attribute_align_arg avcodec_receive_frame(AVCodecContext *avctx, AVFrame *fr
     if (ret < 0)
         return ret;
 
-    av_log(NULL, AV_LOG_ERROR, ">> buffer_frame[0] %d", avci->buffer_frame->buf[0] ? 1 : 0);
+    //av_log(NULL, AV_LOG_ERROR, ">> buffer_frame[0] %d", avci->buffer_frame->buf[0] ? 1 : 0);
     if (avci->buffer_frame->buf[0]) {
         av_frame_move_ref(frame, avci->buffer_frame); // got_frame 1
     } else {

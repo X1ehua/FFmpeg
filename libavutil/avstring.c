@@ -458,3 +458,16 @@ int av_match_list(const char *name, const char *list, char separator)
 
     return 0;
 }
+
+const char* shorten_path(const char* path)
+{
+    int slash = 0, len = strlen(path);
+    for (int i=len-1; i>=0; i--) {
+        if (path[i] == '/') {
+            if (++slash >= 2) {
+                return path+i+1;
+            }
+        }
+    }
+    return path;
+}
