@@ -714,8 +714,8 @@ static void write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int u
         return;
     }
 
-    if ((st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && video_sync_method == VSYNC_DROP) ||
-        (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && audio_sync_method < 0))
+    if ((st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && video_sync_method == VSYNC_DROP) || // video_sync: AUTO -1
+        (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && audio_sync_method < 0))             // DROP 0xff
         pkt->pts = pkt->dts = AV_NOPTS_VALUE;
 
     if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -740,13 +740,13 @@ static void write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int u
         }
     }
 
-    av_packet_rescale_ts(pkt, ost->mux_timebase, ost->st->time_base);
+    av_packet_rescale_ts(pkt, ost->mux_timebase, ost->st->time_base); // reached [ffmpeg -i in -ss 0:10 -t 3 -c copy o3]
 
     if (!(s->oformat->flags & AVFMT_NOTIMESTAMPS)) {
         if (pkt->dts != AV_NOPTS_VALUE &&
             pkt->pts != AV_NOPTS_VALUE &&
             pkt->dts > pkt->pts) {
-            av_log(s, AV_LOG_WARNING, "Invalid DTS: %"PRId64" PTS: %"PRId64" in output stream %d:%d, replacing by guess\n",
+            av_log(s, AV_LOG_WARNING, "Invalid DTS: %lld PTS: %lld in output stream %d:%d, replacing by guess\n",
                    pkt->dts, pkt->pts,
                    ost->file_index, ost->st->index);
             pkt->pts =
@@ -762,13 +762,13 @@ static void write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int u
             if (pkt->dts < max) {
                 int loglevel = max - pkt->dts > 2 || st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ? AV_LOG_WARNING : AV_LOG_DEBUG;
                 av_log(s, loglevel, "Non-monotonous DTS in output stream "
-                       "%d:%d; previous: %"PRId64", current: %"PRId64"; ",
+                       "%d:%d; previous: %lld, current: %lld; ",
                        ost->file_index, ost->st->index, ost->last_mux_dts, pkt->dts);
                 if (exit_on_error) {
                     av_log(NULL, AV_LOG_FATAL, "aborting.\n");
                     exit_program(1);
                 }
-                av_log(s, loglevel, "changing to %"PRId64". This may result "
+                av_log(s, loglevel, "changing to %lld. This may result "
                        "in incorrect timestamps in the output file.\n",
                        max);
                 if (pkt->pts >= pkt->dts)
@@ -777,7 +777,7 @@ static void write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int u
             }
         }
     }
-    ost->last_mux_dts = pkt->dts;
+    ost->last_mux_dts = pkt->dts; // record todo ?
 
     ost->data_size += pkt->size;
     ost->packets_written++;
@@ -1157,7 +1157,7 @@ static void do_video_out(OutputFile *of,
     if (nb0_frames == 0 && ost->last_dropped) {
         nb_frames_drop++;
         av_log(NULL, AV_LOG_VERBOSE,
-               "*** dropping frame %d from stream %d at ts %"PRId64"\n",
+               "*** dropping frame %d from stream %d at ts %lld\n",
                ost->frame_number, ost->st->index, ost->last_frame->pts);
     }
     if (nb_frames > (nb0_frames && ost->last_dropped) + (nb_frames > nb0_frames)) {
@@ -1703,7 +1703,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
 
             frame_number = ost->frame_number;
             fps = t > 1 ? frame_number / t : 0;
-            snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "frame=%5d fps=%3.*f q=%3.1f ",
+            snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "\nframe=%5d fps=%3.*f q=%3.1f ",
                      frame_number, fps < 9.95, fps, q);
             av_bprintf(&buf_script, "frame=%d\n", frame_number);
             av_bprintf(&buf_script, "fps=%.1f\n", fps);
@@ -1788,8 +1788,8 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
     }
 
     if (total_size < 0) av_bprintf(&buf_script, "total_size=N/A\n");
-    else                av_bprintf(&buf_script, "total_size=%"PRId64"\n", total_size);
-    av_bprintf(&buf_script, "out_time_ms=%"PRId64"\n", pts);
+    else                av_bprintf(&buf_script, "total_size=%lld\n", total_size);
+    av_bprintf(&buf_script, "out_time_ms=%lld\n", pts);
     av_bprintf(&buf_script, "out_time=%02d:%02d:%02d.%06d\n",
                hours, mins, secs, us);
 
@@ -1979,8 +1979,8 @@ static int check_output_constraints(InputStream *ist, OutputStream *ost)
     if (ost->finished)
         return 0;
 
-    if (of->start_time != AV_NOPTS_VALUE && ist->pts < of->start_time)
-        return 0;
+    if (of->start_time != AV_NOPTS_VALUE && ist->pts < of->start_time) // start_time 10,000,000:
+        return 0;                                                      // ffmpeg -i in -ss 0:00:10 -c copy out
 
     return 1;
 }
@@ -1993,6 +1993,7 @@ static void do_streamcopy(InputStream *ist, OutputStream *ost, const AVPacket *p
     int64_t ost_tb_start_time = av_rescale_q(start_time, AV_TIME_BASE_Q, ost->mux_timebase);
     AVPicture pict;
     AVPacket opkt;
+//  av_log(NULL, AV_LOG_INFO, ">> start_time %lld, ost_start_time %lld\n", start_time, ost_tb_start_time);
 
     av_init_packet(&opkt);
 
@@ -2081,7 +2082,7 @@ static void do_streamcopy(InputStream *ist, OutputStream *ost, const AVPacket *p
 
 #if FF_API_LAVF_FMT_RAWPICTURE
     if (ost->st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO &&
-        ost->st->codecpar->codec_id == AV_CODEC_ID_RAWVIDEO &&
+        ost->st->codecpar->codec_id == AV_CODEC_ID_RAWVIDEO && // CODEC_ID_RAWVIDEO not reach
         (of->ctx->oformat->flags & AVFMT_RAWPICTURE)) {
         /* store AVPicture in AVPacket, as expected by the output format */
         int ret = avpicture_fill(&pict, opkt.data, ost->st->codecpar->format, ost->st->codecpar->width, ost->st->codecpar->height);
@@ -2341,10 +2342,8 @@ static int decode_audio(InputStream *ist, AVPacket *pkt, int *got_output,
 #if 1
     /* increment next_dts to use for the case where the input stream does not
        have timestamps or there are multiple frames in the packet */
-    ist->next_pts += ((int64_t)AV_TIME_BASE * decoded_frame->nb_samples) /
-                     avctx->sample_rate;
-    ist->next_dts += ((int64_t)AV_TIME_BASE * decoded_frame->nb_samples) /
-                     avctx->sample_rate;
+    ist->next_pts += ((int64_t)AV_TIME_BASE * decoded_frame->nb_samples) / avctx->sample_rate; // not reached
+    ist->next_dts += ((int64_t)AV_TIME_BASE * decoded_frame->nb_samples) / avctx->sample_rate;
 #endif
 
     if (decoded_frame->pts != AV_NOPTS_VALUE) {
@@ -2352,7 +2351,7 @@ static int decode_audio(InputStream *ist, AVPacket *pkt, int *got_output,
     } else if (pkt && pkt->pts != AV_NOPTS_VALUE) {
         decoded_frame->pts = pkt->pts;
         decoded_frame_tb   = ist->st->time_base;
-    }else {
+    } else {
         decoded_frame->pts = ist->dts;
         decoded_frame_tb   = AV_TIME_BASE_Q;
     }
@@ -2481,7 +2480,7 @@ static int decode_video(InputStream *ist, AVPacket *pkt, int *got_output, int64_
 
     if (debug_ts) {
         av_log(NULL, AV_LOG_INFO, "decoder -> ist_index:%d type:video "
-               "frame_pts:%s frame_pts_time:%s best_effort_ts:%"PRId64" best_effort_ts_time:%s keyframe:%d frame_type:%d time_base:%d/%d\n",
+               "frame_pts:%s frame_pts_time:%s best_effort_ts:%lld best_effort_ts_time:%s keyframe:%d frame_type:%d time_base:%d/%d\n",
                ist->st->index, av_ts2str(decoded_frame->pts),
                av_ts2timestr(decoded_frame->pts, &ist->st->time_base),
                best_effort_timestamp,
@@ -2612,9 +2611,9 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
     }
 
     if (ist->next_dts == AV_NOPTS_VALUE)
-        ist->next_dts = ist->dts;
+        ist->next_dts = ist->dts; // reached #1 ++
     if (ist->next_pts == AV_NOPTS_VALUE)
-        ist->next_pts = ist->pts;
+        ist->next_pts = ist->pts; // reached #1 ++
 
     if (!pkt) {
         /* EOF handling */
@@ -2632,7 +2631,7 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
     }
 
     // while we have more to decode or while the decoder did output something on EOF
-    while (ist->decoding_needed) {
+    while (ist->decoding_needed) { // not go inside
         int64_t duration_dts = 0;
         int64_t duration_pts = 0;
         int got_output = 0;
@@ -3624,7 +3623,7 @@ static void report_new_stream(int input_index, AVPacket *pkt)
     if (pkt->stream_index < file->nb_streams_warn)
         return;
     av_log(file->ctx, AV_LOG_WARNING,
-           "New %s stream %d:%d at pos:%"PRId64" and DTS:%ss\n",
+           "New %s stream %d:%d at pos:%lld and DTS:%ss\n",
            av_get_media_type_string(st->codecpar->codec_type),
            input_index, pkt->stream_index,
            pkt->pos, av_ts2timestr(pkt->dts, &st->time_base));
@@ -4320,7 +4319,7 @@ static int process_input(int file_index)
                 new_start_time = FFMIN(new_start_time, av_rescale_q(st->start_time, st->time_base, AV_TIME_BASE_Q));
             }
             if (new_start_time > is->start_time) {
-                av_log(is, AV_LOG_VERBOSE, "Correcting start time by %"PRId64"\n", new_start_time - is->start_time);
+                av_log(is, AV_LOG_VERBOSE, "Correcting start time by %lld\n", new_start_time - is->start_time);
                 ifile->ts_offset = -new_start_time;
             }
         }
@@ -4379,7 +4378,7 @@ static int process_input(int file_index)
             delta >  1LL*dts_delta_threshold*AV_TIME_BASE){
             ifile->ts_offset -= delta;
             av_log(NULL, AV_LOG_DEBUG,
-                   "Inter stream timestamp discontinuity %"PRId64", new offset= %"PRId64"\n",
+                   "Inter stream timestamp discontinuity %lld, new offset= %lld\n",
                    delta, ifile->ts_offset);
             pkt.dts -= av_rescale_q(delta, AV_TIME_BASE_Q, ist->st->time_base);
             if (pkt.pts != AV_NOPTS_VALUE)
@@ -4409,7 +4408,7 @@ static int process_input(int file_index)
                 pkt_dts + AV_TIME_BASE/10 < FFMAX(ist->pts, ist->dts)) {
                 ifile->ts_offset -= delta;
                 av_log(NULL, AV_LOG_DEBUG,
-                       "timestamp discontinuity %"PRId64", new offset= %"PRId64"\n",
+                       "timestamp discontinuity %lld, new offset= %lld\n",
                        delta, ifile->ts_offset);
                 pkt.dts -= av_rescale_q(delta, AV_TIME_BASE_Q, ist->st->time_base);
                 if (pkt.pts != AV_NOPTS_VALUE)
@@ -4418,7 +4417,7 @@ static int process_input(int file_index)
         } else {
             if ( delta < -1LL*dts_error_threshold*AV_TIME_BASE ||
                  delta >  1LL*dts_error_threshold*AV_TIME_BASE) {
-                av_log(NULL, AV_LOG_WARNING, "DTS %"PRId64", next:%"PRId64" st:%d invalid dropping\n", pkt.dts, ist->next_dts, pkt.stream_index);
+                av_log(NULL, AV_LOG_WARNING, "DTS %lld, next:%lld st:%d invalid dropping\n", pkt.dts, ist->next_dts, pkt.stream_index);
                 pkt.dts = AV_NOPTS_VALUE;
             }
             if (pkt.pts != AV_NOPTS_VALUE){
@@ -4426,7 +4425,7 @@ static int process_input(int file_index)
                 delta   = pkt_pts - ist->next_dts;
                 if ( delta < -1LL*dts_error_threshold*AV_TIME_BASE ||
                      delta >  1LL*dts_error_threshold*AV_TIME_BASE) {
-                    av_log(NULL, AV_LOG_WARNING, "PTS %"PRId64", next:%"PRId64" invalid dropping st:%d\n", pkt.pts, ist->next_dts, pkt.stream_index);
+                    av_log(NULL, AV_LOG_WARNING, "PTS %lld, next:%lld invalid dropping st:%d\n", pkt.pts, ist->next_dts, pkt.stream_index);
                     pkt.pts = AV_NOPTS_VALUE;
                 }
             }

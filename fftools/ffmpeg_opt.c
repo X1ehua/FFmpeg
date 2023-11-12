@@ -2208,7 +2208,7 @@ static int open_output_file(OptionsContext *o, const char *filename)
                 exit_program(1);
             }
         }
-    } else if (!o->nb_stream_maps) {
+    } else if (!o->nb_stream_maps) { // reached [2023-10-29]
         char *subtitle_codec_name = NULL;
         /* pick the "best" stream of each type */
 
@@ -3329,7 +3329,7 @@ int ffmpeg_parse_options(int argc, char **argv)
     }
 
     /* open output files */
-    ret = open_files(&octx.groups[GROUP_OUTFILE], "output", open_output_file);
+    ret = open_files(&octx.groups[GROUP_OUTFILE], "output", open_output_file); // o.start_time
     if (ret < 0) {
         av_log(NULL, AV_LOG_FATAL, "Error opening output files: ");
         goto fail;
