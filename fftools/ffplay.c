@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2003 Fabrice Bellard
- *
- * This file is part of FFmpeg.
- *
- * FFmpeg is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * FFmpeg is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with FFmpeg; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
-
-/**
- * @file
- * simple media player based on the FFmpeg libraries
- */
-
 #include "config.h"
 #include <inttypes.h>
 #include <math.h>
@@ -1368,9 +1343,9 @@ static void video_display(VideoState *is)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     if (is->audio_st && is->show_mode != SHOW_MODE_VIDEO)
-        video_audio_display(is);
+        video_audio_display(is); // not reached ❎
     else if (is->video_st)
-        video_image_display(is);
+        video_image_display(is); // reached ✅
     SDL_RenderPresent(renderer);
 }
 
@@ -1715,6 +1690,8 @@ display:
                 av_diff = get_master_clock(is) - get_clock(&is->vidclk);
             else if (is->audio_st)
                 av_diff = get_master_clock(is) - get_clock(&is->audclk);
+
+#if 0
             av_log(NULL, AV_LOG_INFO,
                    "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"PRId64"/%"PRId64"   \r",
                    get_master_clock(is),
@@ -1727,6 +1704,8 @@ display:
                    is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
                    is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);
             fflush(stdout);
+#endif // 0
+
             last_time = cur_time;
         }
     }
