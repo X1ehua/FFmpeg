@@ -1190,7 +1190,7 @@ static void do_video_out(OutputFile *of,
     if (!in_picture)
         return;
 
-    in_picture->pts = ost->sync_opts;
+    in_picture->pts = ost->sync_opts; // avframe to be written into out.mp4
 
 #if 1
     if (!check_recording_time(ost))
@@ -1231,7 +1231,7 @@ static void do_video_out(OutputFile *of,
             else
                 mux_par->field_order = in_picture->top_field_first ? AV_FIELD_TB:AV_FIELD_BT;
         } else
-            mux_par->field_order = AV_FIELD_PROGRESSIVE;
+            mux_par->field_order = AV_FIELD_PROGRESSIVE; // reached
 
         in_picture->quality = enc->global_quality;
         in_picture->pict_type = 0;
@@ -1285,7 +1285,7 @@ static void do_video_out(OutputFile *of,
 
         ost->frames_encoded++;
 
-        ret = avcodec_send_frame(enc, in_picture);
+        ret = avcodec_send_frame(enc, in_picture); // avcodec_send_frame(AVCodecContex*, const AVFrame*)
         if (ret < 0)
             goto error;
 
@@ -2631,7 +2631,7 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
     }
 
     // while we have more to decode or while the decoder did output something on EOF
-    while (ist->decoding_needed) { // not go inside
+    while (ist->decoding_needed) { // 0: -c copy; 1: -c:v h264
         int64_t duration_dts = 0;
         int64_t duration_pts = 0;
         int got_output = 0;
@@ -2660,7 +2660,7 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
 
                 if(ist->dts != AV_NOPTS_VALUE && duration_dts) {
                     ist->next_dts += duration_dts;
-                }else
+                } else
                     ist->next_dts = AV_NOPTS_VALUE;
             }
 
@@ -4567,7 +4567,7 @@ static int transcode_step(void)
     if (ret < 0)
         return ret == AVERROR_EOF ? 0 : ret;
 
-    return reap_filters(0);
+    return reap_filters(0); // reap: 收割 获得
 }
 
 /*

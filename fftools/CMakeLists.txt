@@ -1,17 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(ffmpeg)
 
-include_directories(
-    ..
-    ../libavcodec
-    ../libavformat
-    ../libavfilter
-    ../libavutils
-    ../libresample
-    ../libswscale
-)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=format")
+include_directories( .. /usr/local/include/SDL2)
+file(GLOB HEADERS ../libavutil/*.h ../libavcodec/*.h ../libavformat/*.h)
 
 add_executable(ffmpeg
     cmdutils.c
@@ -28,11 +19,17 @@ find_library(filter   NAMES avfilter   HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../lib
 find_library(scale    NAMES swscale    HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../libswscale")
 find_library(resample NAMES swresample HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../libswresample")
 
-find_library(libz z)
+find_library(libz    z)
 find_library(libcurl curl)
+find_library(libx264 x264)
 find_library(CoreFoundationFramework CoreFoundation)
+find_library(CoreGraphics CoreGraphics)
+find_library(CoreText     CoreText)
+find_library(CoreImage    CoreImage)
+find_library(OpenGL       OpenGL)
+find_library(AppKit       AppKit)
 
-message(">> libcurl: ${libcurl}")
+message(">> libx264: ${libx264}")
 
 target_link_libraries(ffmpeg
     ${codec}
@@ -44,4 +41,8 @@ target_link_libraries(ffmpeg
     ${libz}
     ${libcurl}
     ${CoreFoundationFramework}
+    /usr/local/Cellar/x264/lib/libx264.dylib
+#   ${CoreGraphics} ${CoreText} ${CoreImage} ${AppKit} ${OpenGL}
 )
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=format")

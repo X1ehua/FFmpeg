@@ -304,7 +304,7 @@ int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
 
     av_assert0(avctx->codec->encode2);
 
-    ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr);
+    ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr); // X264_frame()
     av_assert0(ret <= 0);
 
     emms_c();
@@ -375,11 +375,9 @@ static int do_encode(AVCodecContext *avctx, const AVFrame *frame, int *got_packe
     avctx->internal->buffer_pkt_valid = 0;
 
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-        ret = avcodec_encode_video2(avctx, avctx->internal->buffer_pkt,
-                                    frame, got_packet);
+        ret = avcodec_encode_video2(avctx, avctx->internal->buffer_pkt, frame, got_packet);
     } else if (avctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-        ret = avcodec_encode_audio2(avctx, avctx->internal->buffer_pkt,
-                                    frame, got_packet);
+        ret = avcodec_encode_audio2(avctx, avctx->internal->buffer_pkt, frame, got_packet);
     } else {
         ret = AVERROR(EINVAL);
     }
