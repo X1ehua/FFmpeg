@@ -123,6 +123,13 @@ static int file_write(URLContext *h, const unsigned char *buf, int size)
     int ret;
     size = FFMIN(size, c->blocksize);
     ret = write(c->fd, buf, size);
+
+#if 0 // Debug: 统计 libavformat/file.c 中 file_write() 写入的 size
+    static int size_sum = 0;
+    size_sum += size;
+    av_log(NULL, AV_LOG_WARNING, "  file_write>> size %d %d", size, size_sum);
+#endif
+
     return (ret == -1) ? AVERROR(errno) : ret;
 }
 

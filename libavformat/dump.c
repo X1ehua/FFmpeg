@@ -560,7 +560,7 @@ void av_dump_format(AVFormatContext *ic, int index,
     if (ic->nb_streams && !printed)
         return;
 
-    av_log(NULL, AV_LOG_INFO, "%s #%d, %s, %s '%s':\n",
+    av_log(NULL, AV_LOG_INFO, ">>> %s #%d, %s, %s '%s':\n",
            is_output ? "Output" : "Input",
            index,
            is_output ? ic->oformat->name : ic->iformat->name,
