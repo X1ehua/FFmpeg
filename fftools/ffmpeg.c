@@ -2442,6 +2442,7 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
         ist->pts = ist->dts;
         ist->next_pts = ist->next_dts;
     }
+
     for (i = 0; pkt && i < nb_output_streams; i++) {
         OutputStream *ost = output_streams[i];
 

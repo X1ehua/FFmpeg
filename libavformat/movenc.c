@@ -6111,7 +6111,7 @@ static int mov_write_header(AVFormatContext *s)
                 if (!track->vos_data) {
                     return AVERROR(ENOMEM);
                 }
-                memcpy(track->vos_data, st->codecpar->extradata, track->vos_len); // reached in `ffmpeg -i in -c copy out`
+                memcpy(track->vos_data, st->codecpar->extradata, track->vos_len); // reached: ffmpeg -i in.mp4 -c copy out.mp4
             }
         }
 

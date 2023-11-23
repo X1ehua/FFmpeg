@@ -63,6 +63,7 @@ HEADERS = adler32.h                                                     \
           rc4.h                                                         \
           rational.h                                                    \
           replaygain.h                                                  \
+          reverse.h                                                     \
           ripemd.h                                                      \
           samplefmt.h                                                   \
           sha.h                                                         \
