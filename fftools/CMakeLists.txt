@@ -10,6 +10,10 @@ add_executable(ffmpeg
     ffmpeg_hw.c
     ffmpeg_opt.c
     ffmpeg_filter.c
+    record.c
+    ffmpeg.h
+    record.h
+    ${HEADERS}
 )
 
 find_library(util     NAMES avutil     HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../libavutil")
