@@ -2676,7 +2676,7 @@ static int check_init_output_file(OutputFile *of, int file_index)
 
         /* try to improve muxing time_base (only possible if nothing has been written yet) */
         if (!av_fifo_size(ost->muxing_queue))
-            ost->mux_timebase = ost->st->time_base;
+            ost->mux_timebase = ost->st->time_base; // ✳️
 
         while (av_fifo_size(ost->muxing_queue)) {
             AVPacket pkt;
@@ -3182,7 +3182,7 @@ static int init_output_stream(OutputStream *ost, char *error, int error_len)
             av_log(NULL, AV_LOG_WARNING, "The bitrate parameter is set too low."
                                          " It takes bits/s as argument, not kbits/s\n");
 
-        ret = avcodec_parameters_from_context(ost->st->codecpar, ost->enc_ctx);
+        ret = avcodec_parameters_from_context(ost->st->codecpar, ost->enc_ctx); // ✳️
         if (ret < 0) {
             av_log(NULL, AV_LOG_FATAL,
                    "Error initializing the output stream codec context.\n");
@@ -3191,23 +3191,23 @@ static int init_output_stream(OutputStream *ost, char *error, int error_len)
         /*
          * FIXME: ost->st->codec should't be needed here anymore.
          */
-        ret = avcodec_copy_context(ost->st->codec, ost->enc_ctx);
-        if (ret < 0)
-            return ret;
+//        ret = avcodec_copy_context(ost->st->codec, ost->enc_ctx);
+//        if (ret < 0)
+//            return ret;
 
-        if (ost->enc_ctx->nb_coded_side_data) {
-            int i;
-
-            for (i = 0; i < ost->enc_ctx->nb_coded_side_data; i++) {
-                const AVPacketSideData *sd_src = &ost->enc_ctx->coded_side_data[i];
-                uint8_t *dst_data;
-
-                dst_data = av_stream_new_side_data(ost->st, sd_src->type, sd_src->size);
-                if (!dst_data)
-                    return AVERROR(ENOMEM);
-                memcpy(dst_data, sd_src->data, sd_src->size);
-            }
-        }
+//        if (ost->enc_ctx->nb_coded_side_data) {
+//            int i;
+//
+//            for (i = 0; i < ost->enc_ctx->nb_coded_side_data; i++) {
+//                const AVPacketSideData *sd_src = &ost->enc_ctx->coded_side_data[i];
+//                uint8_t *dst_data;
+//
+//                dst_data = av_stream_new_side_data(ost->st, sd_src->type, sd_src->size);
+//                if (!dst_data)
+//                    return AVERROR(ENOMEM);
+//                memcpy(dst_data, sd_src->data, sd_src->size);
+//            }
+//        }
 
         /*
          * Add global input side data. For now this is naive, and copies it
@@ -3216,42 +3216,45 @@ static int init_output_stream(OutputStream *ost, char *error, int error_len)
          * packet side data, and then potentially using the first packet for
          * global side data.
          */
-        if (ist) {
-            int i;
-            for (i = 0; i < ist->st->nb_side_data; i++) {
-                AVPacketSideData *sd = &ist->st->side_data[i];
-                uint8_t *dst = av_stream_new_side_data(ost->st, sd->type, sd->size);
-                if (!dst)
-                    return AVERROR(ENOMEM);
-                memcpy(dst, sd->data, sd->size);
-                if (ist->autorotate && sd->type == AV_PKT_DATA_DISPLAYMATRIX)
-                    av_display_rotation_set((uint32_t *)dst, 0);
-            }
-        }
+//        if (ist) {
+//            int i;
+//            for (i = 0; i < ist->st->nb_side_data; i++) {
+//                AVPacketSideData *sd = &ist->st->side_data[i];
+//                uint8_t *dst = av_stream_new_side_data(ost->st, sd->type, sd->size);
+//                if (!dst)
+//                    return AVERROR(ENOMEM);
+//                memcpy(dst, sd->data, sd->size);
+//                if (ist->autorotate && sd->type == AV_PKT_DATA_DISPLAYMATRIX)
+//                    av_display_rotation_set((uint32_t *)dst, 0);
+//            }
+//        }
 
         // copy timebase while removing common factors
         if (ost->st->time_base.num <= 0 || ost->st->time_base.den <= 0)
             ost->st->time_base = av_add_q(ost->enc_ctx->time_base, (AVRational){0, 1});
 
         // copy estimated duration as a hint to the muxer
-        if (ost->st->duration <= 0 && ist && ist->st->duration > 0)
-            ost->st->duration = av_rescale_q(ist->st->duration, ist->st->time_base, ost->st->time_base);
+//        if (ost->st->duration <= 0 && ist && ist->st->duration > 0)
+//            ost->st->duration = av_rescale_q(ist->st->duration, ist->st->time_base, ost->st->time_base);
 
-        ost->st->codec->codec= ost->enc_ctx->codec;
-    } else if (ost->stream_copy) {
-        ret = init_output_stream_streamcopy(ost);
-        if (ret < 0)
-            return ret;
-
-        /*
-         * FIXME: will the codec context used by the parser during streamcopy
-         * This should go away with the new parser API.
-         */
-        ret = avcodec_parameters_to_context(ost->parser_avctx, ost->st->codecpar);
-        if (ret < 0)
-            return ret;
+//        ost->st->codec->codec = ost->enc_ctx->codec;
     }
+//    else if (ost->stream_copy)
+//    {
+//        ret = init_output_stream_streamcopy(ost);
+//        if (ret < 0)
+//            return ret;
+//
+//        /*
+//         * FIXME: will the codec context used by the parser during streamcopy
+//         * This should go away with the new parser API.
+//         */
+//        ret = avcodec_parameters_to_context(ost->parser_avctx, ost->st->codecpar);
+//        if (ret < 0)
+//            return ret;
+//    }
 
+#if 0
     // parse user provided disposition, and update stream values
     if (ost->disposition) { // (char *)NULL
         static const AVOption opts[] = {
@@ -3290,7 +3293,8 @@ static int init_output_stream(OutputStream *ost, char *error, int error_len)
     ret = init_output_bsfs(ost); // ost->nb_bitstream_filters == 0 所以无任何操作
     if (ret < 0)
         return ret;
-
+#endif
+    
     ost->initialized = 1;
 
     ret = check_init_output_file(output_files[ost->file_index], ost->file_index);

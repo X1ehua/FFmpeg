@@ -13,19 +13,20 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
     AVPacket           pkt;
     AVCodecContext    *enc     = ost->enc_ctx;
     AVCodecParameters *mux_par = ost->st->codecpar;
-    AVFilterContext   *filter  = ost->filter->filter;
+    //AVFilterContext *filter  = ost->filter->filter;
     //InputStream     *ist     = NULL;
     int ret, format_video_sync, nb_frames, /*nb0_frames,*/ i;
     //double delta, delta0, duration = 0; // 目前观察无影响，去掉所有相关代码
 
     //if (ost->source_index >= 0) ist = input_streams[ost->source_index];
-    static int c = 0;
+    //static int c = 0;
     //if (sync_ipts) av_log(NULL, AV_LOG_ERROR, ">>>>> sync_ipts %d:%f\n", c++, sync_ipts);
     //double sync_ipts = next_picture ? c++ : AV_NOPTS_VALUE;
     //av_log(NULL, AV_LOG_ERROR, ">>>>> next_pict %d:%d\n", c++, !!next_picture);
 
     if (!next_picture) { //end, flushing
-        /*nb0_frames =*/ nb_frames = mid_pred(ost->last_nb0_frames[0], ost->last_nb0_frames[1], ost->last_nb0_frames[2]); // 0
+        //nb0_frames = nb_frames = mid_pred(ost->last_nb0_frames[0], ost->last_nb0_frames[1], ost->last_nb0_frames[2]); // 0
+        nb_frames = 0;
     } else { // 设置 format_video_sync，以及 nb_frames nb0_frames delta delta0
         /* by default, we output a single frame */
         nb_frames = 1;
@@ -33,7 +34,7 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
 
         format_video_sync = VSYNC_CFR; // 对于我们的情形中，根据 of.ctx.ofmt.flags 得出 VSYNC_CFR [1]
                                        // VSYNC_CFR: Video Synchronization using Committed Frame Rate 使用已经承诺的帧率
-        ost->is_cfr = (format_video_sync == VSYNC_CFR || format_video_sync == VSYNC_VSCFR);
+        //ost->is_cfr = (format_video_sync == VSYNC_CFR || format_video_sync == VSYNC_VSCFR);
 
         if (format_video_sync != VSYNC_CFR) { // not reached
             av_log(NULL, AV_LOG_ERROR, ">>> format_video_sync %d != VSYNC_CFR %d", format_video_sync, VSYNC_CFR);
@@ -43,7 +44,7 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
         }
     }
 
-    nb_frames = FFMIN(nb_frames, ost->max_frames - ost->frame_number); // 1 or 0[end]
+    //nb_frames = FFMIN(nb_frames, ost->max_frames - ost->frame_number); // 1 or 0[end] ❓max_frames frame_number
 
     /* duplicate frame if needed */
     for (i = 0; i < nb_frames; i++)
@@ -57,7 +58,7 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
         in_picture = next_picture;
 
         // if (!in_picture) return; // ✖️ not reached
-        in_picture->pts = ost->sync_opts; // AVFrame to be written into out.mp4
+        //in_picture->pts = ost->sync_opts; // AVFrame to be written into out.mp4 ❓sync_opts
         // av_log(NULL, AV_LOG_ERROR, ">>>>>> pts %lld = %lld\n", in_picture->pts, ost->sync_opts);
 
         // if (!check_recording_time(ost)) return 0; // ✖️ not reached // TODO: 实现此函数并打开注释
@@ -74,7 +75,7 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
 
         // 删除 30 行代码：ost->forced_keyframes && forced_keyframe 为 true 的情况 // ✖️ not reached
         // 删除 debug_ts log
-        ost->frames_encoded++;
+        //ost->frames_encoded++;
 
         // AVFrame >> AVPacket 关键步骤
         ret = avcodec_send_frame(enc, in_picture); // AVFrame 发送至 encoder (AVCodecContex*, const AVFrame*)
@@ -93,10 +94,16 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
                 goto error; // ✖️ not reached
 
             // 删除 debug_ts log
-            if (pkt.pts == AV_NOPTS_VALUE && !(enc->codec->capabilities & AV_CODEC_CAP_DELAY))
-                pkt.pts = ost->sync_opts; // not reached
+            // if (pkt.pts == AV_NOPTS_VALUE && !(enc->codec->capabilities & AV_CODEC_CAP_DELAY))
+                // pkt.pts = ost->sync_opts; // not reached ❓
 
-            av_packet_rescale_ts(&pkt, enc->time_base, ost->mux_timebase);
+            AVRational mux_timebase = {
+                .num = 1,
+                .den = 24000
+            };
+            av_packet_rescale_ts(&pkt, enc->time_base, mux_timebase);
+            //av_packet_rescale_ts(&pkt, enc->time_base, ost->mux_timebase);
+
             // 删除 debug_ts log
 
             // do_video_out() 调用多次后，才到这里
@@ -106,13 +113,14 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
         }
         //av_log(NULL, AV_LOG_ERROR, ">>> pkts count: %d, %d\n", pkts1, pkts2);
 
-        ost->sync_opts++; // 下一个 frame: in_picture->pts 等于此处 ++ 之后的 ost->sync_opts
+        // ost->sync_opts++; // 下一个 frame: in_picture->pts 等于此处 ++ 之后的 ost->sync_opts
 
         /* For video, number of frames in == number of packets out. But there may be reordering, so we can't
            throw away frames on encoder flush, we need to limit them here, before they go into encoder. */
-        ost->frame_number++;
+        //ost->frame_number++; // not used
     }
 
+#if 0
     if (!ost->last_frame)
         ost->last_frame = av_frame_alloc();
     av_frame_unref(ost->last_frame);
@@ -120,6 +128,16 @@ int do_video_out(OutputFile *of, OutputStream *ost, AVFrame *next_picture, doubl
         av_frame_ref(ost->last_frame, next_picture);
     else
         av_frame_free(&ost->last_frame);
+#endif
+    // if (!ost_last_frame)
+    //     ost_last_frame = av_frame_alloc();
+    // av_frame_unref(ost_last_frame);
+    // if (next_picture && ost_last_frame)
+    //     av_frame_ref(ost_last_frame, next_picture);
+    // else
+    //     av_frame_free(&ost_last_frame);
+
+
 
     return 0;
 error:
@@ -186,14 +204,15 @@ int write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int unqueue)
      * Counting encoded video frames needs to be done separately because of reordering, see do_video_out().
      * Do not count the packet when unqueued because it has been counted when queued.
      */
-    if (!(st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && ost->encoding_needed) && !unqueue) {
-        if (ost->frame_number >= ost->max_frames) {
-            av_packet_unref(pkt);
-            return main_return_code;
-        }
-        ost->frame_number++;
+    if (!(st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && ost->encoding_needed) && !unqueue) { // reached while TYPE_AUDIO
+        // if (ost->frame_number >= ost->max_frames) { // not reached
+        //     av_packet_unref(pkt);
+        //     return main_return_code;
+        // }
+        // ost->frame_number++;
     }
 
+    // ost->muxing_queue 相关逻辑：挪出来 ✅
     // static int header_written = 0;
     if (!of->header_written) {
     // if (!header_written) {
