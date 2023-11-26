@@ -5568,6 +5568,151 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { 0, NULL }
 };
 
+#define DEBUG_MOV_READ_FUNC 1
+
+#if DEBUG_MOV_READ_FUNC // debug
+
+typedef struct FuncInfo {
+    void* addr;
+    const char* name;
+} FuncInfo;
+
+#define FUNC_INFO(func) { .addr = &func, .name = &#func[0] }
+
+static FuncInfo* s_FuncInfo_arr;
+static int s_FuncInfo_num = 0;
+
+const char* get_func_name(void* addr);
+void debug_parse_stat(void* parse);
+void debug_parse_log(void);
+
+const char* get_func_name(void* addr)
+{
+    static FuncInfo fis[] = {
+        FUNC_INFO(mov_read_wave),
+        FUNC_INFO(mov_read_avid),
+        FUNC_INFO(mov_read_trex),
+        FUNC_INFO(mov_read_glbl),
+        FUNC_INFO(mov_read_vpcc),
+        FUNC_INFO(mov_read_stss),
+        FUNC_INFO(mov_read_chan),
+        FUNC_INFO(mov_read_meta),
+        FUNC_INFO(mov_read_colr),
+        FUNC_INFO(mov_read_esds),
+        FUNC_INFO(mov_read_ilst),
+        FUNC_INFO(mov_read_moof),
+        FUNC_INFO(mov_read_trak),
+        FUNC_INFO(mov_read_dref),
+        FUNC_INFO(mov_read_senc),
+        FUNC_INFO(mov_read_alac),
+        FUNC_INFO(mov_read_free),
+        FUNC_INFO(mov_read_saiz),
+        FUNC_INFO(mov_read_jp2h),
+        FUNC_INFO(mov_read_moov),
+        FUNC_INFO(mov_read_fiel),
+        FUNC_INFO(mov_read_stco),
+        FUNC_INFO(mov_read_stts),
+        FUNC_INFO(mov_read_coll),
+        FUNC_INFO(mov_read_targa_y216),
+        FUNC_INFO(mov_read_custom),
+        FUNC_INFO(mov_read_sv3d),
+        FUNC_INFO(mov_read_ftyp),
+        FUNC_INFO(mov_read_cmov),
+        FUNC_INFO(mov_read_ctts),
+        FUNC_INFO(mov_read_ares),
+        FUNC_INFO(mov_read_dac3),
+        FUNC_INFO(mov_read_elst),
+        FUNC_INFO(mov_read_dvc1),
+        FUNC_INFO(mov_read_trun),
+        FUNC_INFO(mov_read_dec3),
+        FUNC_INFO(mov_read_dfla),
+        FUNC_INFO(mov_read_hdlr),
+        FUNC_INFO(mov_read_strf),
+        FUNC_INFO(mov_read_adrm),
+        FUNC_INFO(mov_read_avss),
+        FUNC_INFO(mov_read_chap),
+        FUNC_INFO(mov_read_chpl),
+        FUNC_INFO(mov_read_tmcd),
+        FUNC_INFO(mov_read_uuid),
+        FUNC_INFO(mov_read_sbgp),
+        FUNC_INFO(mov_read_stsc),
+        FUNC_INFO(mov_read_tfhd),
+        FUNC_INFO(mov_read_dops),
+        FUNC_INFO(mov_read_aclr),
+        FUNC_INFO(mov_read_svq3),
+        FUNC_INFO(mov_read_mvhd),
+        FUNC_INFO(mov_read_enda),
+        FUNC_INFO(mov_read_stps),
+        FUNC_INFO(mov_read_mdat),
+        FUNC_INFO(mov_read_stsd),
+        FUNC_INFO(mov_read_st3d),
+        FUNC_INFO(mov_read_smdm),
+        FUNC_INFO(mov_read_dpxe),
+        FUNC_INFO(mov_read_wfex),
+        FUNC_INFO(mov_read_tfdt),
+        FUNC_INFO(mov_read_default),
+        FUNC_INFO(mov_read_ddts),
+        FUNC_INFO(mov_read_wide),
+        FUNC_INFO(mov_read_sidx),
+        FUNC_INFO(mov_read_mdhd),
+        FUNC_INFO(mov_read_frma),
+        FUNC_INFO(mov_read_stsz),
+        FUNC_INFO(mov_read_tkhd),
+        FUNC_INFO(mov_read_pasp),
+    };
+
+    s_FuncInfo_arr = &fis[0];
+    s_FuncInfo_num = sizeof(fis) / sizeof(FuncInfo);
+
+    for (int i=0; i<s_FuncInfo_num; i++) {
+        if (s_FuncInfo_arr[i].addr == addr) {
+            return s_FuncInfo_arr[i].name;
+        }
+    }
+    return "null";
+}
+
+typedef struct ParseInfo {
+    void* addr;
+    int   num;
+} ParseInfo;
+
+#define FUNC_N 70 // 70个 mov_read_xxxx funcs(去重之后)
+static ParseInfo s_ParseInfo_arr[FUNC_N] = {{NULL, 0}};
+
+void debug_parse_stat(void *parse)
+{
+    int i = 0;
+    for (; i<FUNC_N; i++) {
+        if (!s_ParseInfo_arr[i].addr) {
+            s_ParseInfo_arr[i].addr = parse;
+            s_ParseInfo_arr[i].num = 1;
+            break;
+        }
+
+        if (s_ParseInfo_arr[i].addr == parse) {
+            s_ParseInfo_arr[i].num ++;
+            break;
+        }
+    }
+
+    // static int cc = 0;
+    // const char* func_name = get_func_name(parse);
+    // av_log(NULL, AV_LOG_ERROR, ">> %d# parse %p: %d\n", ++cc, func_name, s_ParseInfo_arr[i].num);
+}
+
+void debug_parse_log(void)
+{
+    static int c = 0;
+    av_log(NULL, AV_LOG_ERROR, "%d\n", ++c);
+    for (int i=0; i<FUNC_N; i++) {
+        if (!s_ParseInfo_arr[i].addr)
+            break;
+        av_log(NULL, AV_LOG_ERROR, "%2d: %s\n", s_ParseInfo_arr[i].num, get_func_name(s_ParseInfo_arr[i].addr));
+    }
+}
+#endif // DEBUG_MOV_READ_FUNC
+
 static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 {
     int64_t total_size = 0;
@@ -5585,7 +5730,7 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     while (total_size <= atom.size - 8 && !avio_feof(pb)) {
         int (*parse)(MOVContext*, AVIOContext*, MOVAtom) = NULL;
         a.size = atom.size;
-        a.type=0;
+        a.type = 0;
         if (atom.size >= 8) {
             a.size = avio_rb32(pb);
             a.type = avio_rl32(pb);
@@ -5650,12 +5795,19 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             parse = mov_read_keys;
         }
 
+#if DEBUG_MOV_READ_FUNC
+        debug_parse_stat(parse);
+#endif
+
+        /* parse 指向的 mov_read_xxxx 共有 84 种 func
+         * 在加载 garfield.mp4 的过程中，共调用 76 次 28+1 种不同的 parse (其中+1为 NULL) */
         if (!parse) { /* skip leaf atoms data */
             avio_skip(pb, a.size);
         } else {
             int64_t start_pos = avio_tell(pb);
             int64_t left;
-            int err = parse(c, pb, a);
+            int err = parse(c, pb, a); /* parse = mov_read_xxxx: ftyp free mdat moov mvhd trak tkhd default
+                                        *                        elst tmcd mdhd hdlr dref stsd glbl colr ... */
             if (err < 0) {
                 c->atom_depth --;
                 return err;
@@ -5681,6 +5833,40 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
         total_size += a.size;
     }
+
+#if DEBUG_MOV_READ_FUNC
+    debug_parse_log();
+    /* 最后的第 25 次内容:
+    1: mov_read_ftyp
+    1: mov_read_free
+    1: mov_read_mdat
+    1: mov_read_moov
+    1: mov_read_mvhd
+    3: mov_read_trak [3]
+    3: mov_read_tkhd [3]
+   17: mov_read_default
+    3: mov_read_elst [3]
+    1: mov_read_tmcd
+    3: mov_read_mdhd [3]
+    4: mov_read_hdlr [4]<
+    3: mov_read_dref [3]
+    3: mov_read_stsd [3]
+    1: mov_read_glbl
+    1: mov_read_colr
+    1: mov_read_pasp
+    3: mov_read_stts [3]
+    1: mov_read_stss
+    1: mov_read_ctts [3]
+    3: mov_read_stsc [3]
+    3: mov_read_stsz [3]
+    3: mov_read_stco [3]
+    1: mov_read_esds
+    1: mov_read_sbgp
+    1: mov_read_meta
+    1: mov_read_ilst
+    4: null          [4]
+    */
+#endif
 
     if (total_size < atom.size && atom.size < 0x7ffff)
         avio_skip(pb, atom.size - total_size);
@@ -6192,13 +6378,13 @@ static int mov_read_header(AVFormatContext *s)
 
     /* check MOV header */
     do {
-    if (mov->moov_retry)
-        avio_seek(pb, 0, SEEK_SET);
-    if ((err = mov_read_default(mov, pb, atom)) < 0) {
-        av_log(s, AV_LOG_ERROR, "error reading header\n");
-        mov_read_close(s);
-        return err;
-    }
+        if (mov->moov_retry)
+            avio_seek(pb, 0, SEEK_SET);
+        if ((err = mov_read_default(mov, pb, atom)) < 0) {
+            av_log(s, AV_LOG_ERROR, "error reading header\n");
+            mov_read_close(s);
+            return err;
+        }
     } while ((pb->seekable & AVIO_SEEKABLE_NORMAL) && !mov->found_moov && !mov->moov_retry++);
     if (!mov->found_moov) {
         av_log(s, AV_LOG_ERROR, "moov atom not found\n");

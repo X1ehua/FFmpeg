@@ -592,14 +592,14 @@ int avformat_open_input(AVFormatContext **ps, const char *filename,
         ff_id3v2_read_dict(s->pb, &s->internal->id3v2_meta, ID3v2_DEFAULT_MAGIC, &id3v2_extra_meta);
 
 
-    if (!(s->flags&AVFMT_FLAG_PRIV_OPT)) {
+    if (!(s->flags & AVFMT_FLAG_PRIV_OPT)) {
         if (s->iformat->read_header2) {
             if (options)
                 av_dict_copy(&tmp2, *options, 0);
 
             if ((ret = s->iformat->read_header2(s, &tmp2)) < 0)
                 goto fail;
-        } else if (s->iformat->read_header && (ret = s->iformat->read_header(s)) < 0)
+        } else if (s->iformat->read_header && (ret = s->iformat->read_header(s)) < 0) // ✳️
             goto fail;
     }
 
