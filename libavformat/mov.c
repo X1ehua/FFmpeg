@@ -3739,8 +3739,10 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     MOVStreamContext *sc;
     int ret;
 
-    st = avformat_new_stream(c->fc, NULL);
+    st = avformat_new_stream(c->fc, NULL); // 🔸
+
     if (!st) return AVERROR(ENOMEM);
+    
     st->id = c->fc->nb_streams;
     sc = av_mallocz(sizeof(MOVStreamContext));
     if (!sc) return AVERROR(ENOMEM);
@@ -5808,6 +5810,7 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
              * > 共调用 76 次 28+1 种不同的 parse (其中+1为 NULL)
              * > parse = mov_read_xxxx: ftyp free mdat moov mvhd trak tkhd default
              *                          elst tmcd mdhd hdlr dref stsd glbl colr ... 
+             * mov_read_trak() 会 avformat_new_stream() 增加 avFmtCtx->streams & nb_streams
              */
             int err = parse(c, pb, a); // 🔸
             if (err < 0) {
@@ -6369,7 +6372,7 @@ static int mov_read_header(AVFormatContext *s)
     1: mov_read_mvhd
     3: mov_read_trak  3
     3: mov_read_tkhd  3
-    17: mov_read_default
+   17: mov_read_default
     3: mov_read_elst  3
     1: mov_read_tmcd
     3: mov_read_mdhd  3

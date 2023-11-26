@@ -4406,12 +4406,15 @@ AVStream *avformat_new_stream(AVFormatContext *s, const AVCodec *c)
             av_log(s, AV_LOG_ERROR, "Number of streams exceeds max_streams parameter (%d), see the documentation if you wish to increase it\n", s->max_streams);
         return NULL;
     }
-    streams = av_realloc_array(s->streams, s->nb_streams + 1, sizeof(*streams));
+
+    streams = av_realloc_array(s->streams, s->nb_streams + 1, sizeof(*streams)); // 🔸
+
     if (!streams)
         return NULL;
     s->streams = streams;
 
-    st = av_mallocz(sizeof(AVStream));
+    st = av_mallocz(sizeof(AVStream)); // 🔸
+
     if (!st)
         return NULL;
     if (!(st->info = av_mallocz(sizeof(*st->info)))) {
@@ -4487,7 +4490,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
     st->internal->need_context_update = 1;
 
-    s->streams[s->nb_streams++] = st;
+    s->streams[s->nb_streams++] = st; // 🔸
     return st;
 fail:
     free_stream(&st);
