@@ -5783,15 +5783,12 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             }
 
         // container is user data
-        if (!parse && (atom.type == MKTAG('u','d','t','a') ||
-                       atom.type == MKTAG('i','l','s','t')))
+        if (!parse && (atom.type == MKTAG('u','d','t','a') || atom.type == MKTAG('i','l','s','t')))
             parse = mov_read_udta_string;
 
         // Supports parsing the QuickTime Metadata Keys.
         // https://developer.apple.com/library/mac/documentation/QuickTime/QTFF/Metadata/Metadata.html
-        if (!parse && c->found_hdlr_mdta &&
-            atom.type == MKTAG('m','e','t','a') &&
-            a.type == MKTAG('k','e','y','s')) {
+        if (!parse && c->found_hdlr_mdta && atom.type == MKTAG('m','e','t','a') && a.type == MKTAG('k','e','y','s')) {
             parse = mov_read_keys;
         }
 
@@ -5799,19 +5796,25 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         debug_parse_stat(parse);
 #endif
 
-        /* parse 指向的 mov_read_xxxx 共有 84 种 func
-         * 在加载 garfield.mp4 的过程中，共调用 76 次 28+1 种不同的 parse (其中+1为 NULL) */
         if (!parse) { /* skip leaf atoms data */
             avio_skip(pb, a.size);
-        } else {
+        }
+        else {
             int64_t start_pos = avio_tell(pb);
             int64_t left;
-            int err = parse(c, pb, a); /* parse = mov_read_xxxx: ftyp free mdat moov mvhd trak tkhd default
-                                        *                        elst tmcd mdhd hdlr dref stsd glbl colr ... */
+
+            /* parse 指向的 mov_default_parse_table[i].parse 去重后 70 个不同的 func
+             * 如在加载 garfield.mp4 的过程中：
+             * > 共调用 76 次 28+1 种不同的 parse (其中+1为 NULL)
+             * > parse = mov_read_xxxx: ftyp free mdat moov mvhd trak tkhd default
+             *                          elst tmcd mdhd hdlr dref stsd glbl colr ... 
+             */
+            int err = parse(c, pb, a); // 🔸
             if (err < 0) {
                 c->atom_depth --;
                 return err;
             }
+
             if (c->found_moov && c->found_mdat &&
                 ((!(pb->seekable & AVIO_SEEKABLE_NORMAL) || c->fc->flags & AVFMT_FLAG_IGNIDX || c->fragment_index_complete) ||
                  start_pos + a.size == avio_size(pb))) {
