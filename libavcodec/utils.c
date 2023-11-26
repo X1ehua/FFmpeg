@@ -1241,8 +1241,7 @@ static AVCodec *find_encdec(enum AVCodecID id, int encoder)
     p = first_avcodec;
     id= remap_deprecated_codec_id(id);
     while (p) {
-        if ((encoder ? av_codec_is_encoder(p) : av_codec_is_decoder(p)) &&
-            p->id == id) {
+        if ((encoder ? av_codec_is_encoder(p) : av_codec_is_decoder(p)) && p->id == id) {
             if (p->capabilities & AV_CODEC_CAP_EXPERIMENTAL && !experimental) {
                 experimental = p;
             } else

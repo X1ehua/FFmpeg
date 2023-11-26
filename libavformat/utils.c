@@ -635,7 +635,7 @@ int avformat_open_input(AVFormatContext **ps, const char *filename,
     if ((ret = avformat_queue_attached_pictures(s)) < 0)
         goto fail;
 
-    if (!(s->flags&AVFMT_FLAG_PRIV_OPT) && s->pb && !s->internal->data_offset)
+    if (!(s->flags & AVFMT_FLAG_PRIV_OPT) && s->pb && !s->internal->data_offset)
         s->internal->data_offset = avio_tell(s->pb);
 
     s->internal->raw_packet_buffer_remaining_size = RAW_PACKET_BUFFER_SIZE;
