@@ -599,8 +599,12 @@ int avformat_open_input(AVFormatContext **ps, const char *filename,
 
             if ((ret = s->iformat->read_header2(s, &tmp2)) < 0)
                 goto fail;
-        } else if (s->iformat->read_header && (ret = s->iformat->read_header(s)) < 0) // ✳️
-            goto fail;
+        }
+        else if (s->iformat->read_header) {
+            ret = s->iformat->read_header(s); // 🔸
+            if (ret < 0)
+                goto fail;
+        }
     }
 
     if (!s->metadata) {

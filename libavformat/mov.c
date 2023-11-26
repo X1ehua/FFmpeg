@@ -5834,40 +5834,6 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         total_size += a.size;
     }
 
-#if DEBUG_MOV_READ_FUNC
-    debug_parse_log();
-    /* 最后的第 25 次内容:
-    1: mov_read_ftyp
-    1: mov_read_free
-    1: mov_read_mdat
-    1: mov_read_moov
-    1: mov_read_mvhd
-    3: mov_read_trak [3]
-    3: mov_read_tkhd [3]
-   17: mov_read_default
-    3: mov_read_elst [3]
-    1: mov_read_tmcd
-    3: mov_read_mdhd [3]
-    4: mov_read_hdlr [4]<
-    3: mov_read_dref [3]
-    3: mov_read_stsd [3]
-    1: mov_read_glbl
-    1: mov_read_colr
-    1: mov_read_pasp
-    3: mov_read_stts [3]
-    1: mov_read_stss
-    1: mov_read_ctts [3]
-    3: mov_read_stsc [3]
-    3: mov_read_stsz [3]
-    3: mov_read_stco [3]
-    1: mov_read_esds
-    1: mov_read_sbgp
-    1: mov_read_meta
-    1: mov_read_ilst
-    4: null          [4]
-    */
-#endif
-
     if (total_size < atom.size && atom.size < 0x7ffff)
         avio_skip(pb, atom.size - total_size);
 
@@ -6380,12 +6346,50 @@ static int mov_read_header(AVFormatContext *s)
     do {
         if (mov->moov_retry)
             avio_seek(pb, 0, SEEK_SET);
-        if ((err = mov_read_default(mov, pb, atom)) < 0) {
+
+        err = mov_read_default(mov, pb, atom); // 🔸
+        if (err < 0) {
             av_log(s, AV_LOG_ERROR, "error reading header\n");
             mov_read_close(s);
             return err;
         }
-    } while ((pb->seekable & AVIO_SEEKABLE_NORMAL) && !mov->found_moov && !mov->moov_retry++);
+    }
+    while ((pb->seekable & AVIO_SEEKABLE_NORMAL) && !mov->found_moov && !mov->moov_retry++);
+
+#if DEBUG_MOV_READ_FUNC
+    debug_parse_log();
+    /* 加载 garfield.mp4 的 log:
+    1: mov_read_ftyp
+    1: mov_read_free
+    1: mov_read_mdat
+    1: mov_read_moov
+    1: mov_read_mvhd
+    3: mov_read_trak  3
+    3: mov_read_tkhd  3
+    17: mov_read_default
+    3: mov_read_elst  3
+    1: mov_read_tmcd
+    3: mov_read_mdhd  3
+    4: mov_read_hdlr x4
+    3: mov_read_dref  3
+    3: mov_read_stsd  3
+    1: mov_read_glbl
+    1: mov_read_colr
+    1: mov_read_pasp
+    3: mov_read_stts  3
+    1: mov_read_stss
+    1: mov_read_ctts  3
+    3: mov_read_stsc  3
+    3: mov_read_stsz  3
+    3: mov_read_stco  3
+    1: mov_read_esds
+    1: mov_read_sbgp
+    1: mov_read_meta
+    1: mov_read_ilst
+    4: null          [4]
+    */
+#endif // DEBUG_MOV_READ_FUNC
+
     if (!mov->found_moov) {
         av_log(s, AV_LOG_ERROR, "moov atom not found\n");
         mov_read_close(s);
